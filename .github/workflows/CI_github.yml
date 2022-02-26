@@ -1,0 +1,78 @@
+name: Build Yocto Image
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: [self-hosted, linux, X64]
+    container:
+      image: dynamicdevices/yocto-ci-build:latest
+      options: --privileged --platform linux/amd64  -v /dev/net/tun:/dev/net/tun -v /dev/kvm:/dev/kvm
+    strategy:
+      matrix:
+        branch: [honister]
+        arch: [x86-64]
+    env:
+      name: build-and-test
+      ARCH: ${{ matrix.arch }}
+      BRANCH: ${{ matrix.branch }}
+    steps:
+    - name: Checkout yocto-playground
+      uses: actions/checkout@v2
+      with:
+        clean: false
+        path: ${{ matrix.branch }}/yocto-playground
+    - name: Update repo poky
+      run: |
+        if [ ! -d ${BRANCH}/poky ]; then
+          git clone git://git.yoctoproject.org/poky -b ${BRANCH} ${BRANCH}/poky
+        else
+          cd ${BRANCH}/poky
+          git pull origin ${BRANCH}
+          cd ../..
+        fi
+    - name: Update repo meta-openembedded
+      run: |
+        if [ ! -d ${BRANCH}/meta-openembedded ]; then
+          git clone https://github.com/openembedded/meta-openembedded.git -b ${BRANCH} ${BRANCH}/meta-openembedded
+        else
+          cd ${BRANCH}/meta-openembedded
+          git pull origin ${BRANCH}
+          cd ../..
+        fi 
+    - name: Configuring
+      run: |
+        . ./${BRANCH}/poky/oe-init-build-env ${BRANCH}/build
+        if [[ ! $(grep ${GITHUB_WORKSPACE}/${BRANCH}/yocto-playground conf/bblayers.conf) ]]; then
+          echo "BBLAYERS += '$GITHUB_WORKSPACE/${BRANCH}/yocto-playground'" >> conf/bblayers.conf
+        fi
+        if [[ ! $(grep meta-openembedded conf/bblayers.conf) ]]; then
+          echo "BBLAYERS += '$GITHUB_WORKSPACE/${BRANCH}/meta-openembedded/meta-oe'" >> conf/bblayers.conf
+        fi
+        if [[ ! $(grep rm_work conf/local.conf) ]]; then
+          echo "INHERIT += ' rm_work '" >> conf/local.conf
+        fi
+        sed -i 's/#IMAGE_CLASSES += "testimage testsdk"/IMAGE_CLASSES += "testimage "/' conf/local.conf
+    - name: Building
+      run: |
+        . ./${BRANCH}/poky/oe-init-build-env ${BRANCH}/build
+
+        export BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} MACHINE DL_DIR"
+
+        env MACHINE="qemu${ARCH}" DL_DIR="$GITHUB_WORKSPACE/downloads" bitbake -k core-image-minimal
+    - name: Testing
+      run: |
+        . ./${BRANCH}/poky/oe-init-build-env ${BRANCH}/build
+
+        export BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} MACHINE DL_DIR"
+        export TERM=linux
+        env MACHINE="qemu${ARCH}" DL_DIR="$GITHUB_WORKSPACE/downloads" bitbake core-image-minimal -c testimage
+    - name: Store artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: core-image-minimal-${{ github.sha }}
+        path: ./${{ matrix.branch }}/build/tmp/deploy/images/qemu${{ matrix.arch }}/

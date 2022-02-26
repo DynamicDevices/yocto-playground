@@ -47,9 +47,6 @@ jobs:
     - name: Configuring
       run: |
         . ./${BRANCH}/poky/oe-init-build-env ${BRANCH}/build
-        if [[ ! $(grep ${GITHUB_WORKSPACE}/${BRANCH}/yocto-playground conf/bblayers.conf) ]]; then
-          echo "BBLAYERS += '$GITHUB_WORKSPACE/${BRANCH}/yocto-playground'" >> conf/bblayers.conf
-        fi
         if [[ ! $(grep meta-openembedded conf/bblayers.conf) ]]; then
           echo "BBLAYERS += '$GITHUB_WORKSPACE/${BRANCH}/meta-openembedded/meta-oe'" >> conf/bblayers.conf
         fi

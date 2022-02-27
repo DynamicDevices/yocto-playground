@@ -15,3 +15,9 @@ An example workflow is defined [here](https://github.com/DynamicDevices/yocto-pl
 You can see the example runs [here](https://github.com/DynamicDevices/yocto-playground/actions)
 
 And the current workflow status is ![workflow image](https://img.shields.io/github/workflow/status/dynamicdevices/yocto-playground/Build%20Yocto%20Image)
+
+# Setup
+
+If you want to configure a self-hosted runner on your account see background [here](https://docs.github.com/en/actions/hosting-your-own-runners/about-self-hosted-runners).
+
+I have the DynamicDevices organisation and I have self-hosted runners configured on there which I then allow to run on certain repositories

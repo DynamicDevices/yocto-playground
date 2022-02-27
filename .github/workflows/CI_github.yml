@@ -3,7 +3,7 @@ name: Build Yocto Image
 on:
   push:
     branches:
-      - main
+      - ajl/ridgerun
   pull_request:
 
 jobs:
@@ -44,32 +44,45 @@ jobs:
           git pull origin ${BRANCH}
           cd ../..
         fi 
+    - name: Update repo meta-ridgerun
+      run: |
+        if [ ! -d ${BRANCH}/meta-ridgerun ]; then
+          git clone https://github.com/RidgeRun/meta-ridgerun.git -b ${BRANCH} ${BRANCH}/meta-ridgerun
+        else
+          cd ${BRANCH}/meta-browser
+          git pull origin ${BRANCH}
+          cd ../..
+        fi 
     - name: Configuring
       run: |
         . ./${BRANCH}/poky/oe-init-build-env ${BRANCH}/build
         if [[ ! $(grep meta-openembedded conf/bblayers.conf) ]]; then
           echo "BBLAYERS += '$GITHUB_WORKSPACE/${BRANCH}/meta-openembedded/meta-oe'" >> conf/bblayers.conf
         fi
+        if [[ ! $(grep meta-ridgerun conf/bblayers.conf) ]]; then
+          echo "BBLAYERS += '$GITHUB_WORKSPACE/${BRANCH}/meta-ridgerun'" >> conf/bblayers.conf
+        fi
         if [[ ! $(grep rm_work conf/local.conf) ]]; then
           echo "INHERIT += ' rm_work '" >> conf/local.conf
         fi
         sed -i 's/#IMAGE_CLASSES += "testimage testsdk"/IMAGE_CLASSES += "testimage "/' conf/local.conf
-    - name: Building
+    - name: Build Chromium
       run: |
         . ./${BRANCH}/poky/oe-init-build-env ${BRANCH}/build
 
         export BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} MACHINE DL_DIR"
 
-        env MACHINE="qemu${ARCH}" DL_DIR="$GITHUB_WORKSPACE/downloads" bitbake -k core-image-minimal
-    - name: Testing
-      run: |
-        . ./${BRANCH}/poky/oe-init-build-env ${BRANCH}/build
-
-        export BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} MACHINE DL_DIR"
-        export TERM=linux
-        env MACHINE="qemu${ARCH}" DL_DIR="$GITHUB_WORKSPACE/downloads" bitbake core-image-minimal -c testimage
-    - name: Store artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: core-image-minimal-${{ github.sha }}
-        path: ./${{ matrix.branch }}/build/tmp/deploy/images/qemu${{ matrix.arch }}/
+        env MACHINE="qemu${ARCH}" DL_DIR="$GITHUB_WORKSPACE/downloads" bitbake -k gst gst-shark
+        env MACHINE="qemu${ARCH}" DL_DIR="$GITHUB_WORKSPACE/downloads" bitbake -k gst-webrtc
+#    - name: Testing
+#      run: |
+#        . ./${BRANCH}/poky/oe-init-build-env ${BRANCH}/build
+#
+#        export BB_ENV_PASSTHROUGH_ADDITIONS="${BB_ENV_PASSTHROUGH_ADDITIONS} MACHINE DL_DIR"
+#        export TERM=linux
+#        env MACHINE="qemu${ARCH}" DL_DIR="$GITHUB_WORKSPACE/downloads" bitbake core-image-minimal -c testimage
+#    - name: Store artifacts
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: core-image-minimal-${{ github.sha }}
+#        path: ./${{ matrix.branch }}/build/tmp/deploy/images/qemu${{ matrix.arch }}/

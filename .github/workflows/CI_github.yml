@@ -49,8 +49,8 @@ jobs:
         if [ ! -d ${BRANCH}/meta-ridgerun ]; then
           git clone https://github.com/RidgeRun/meta-ridgerun.git -b master ${BRANCH}/meta-ridgerun
         else
-          cd ${BRANCH}/meta-browser
-          git pull origin ${BRANCH}
+          cd ${BRANCH}/meta-ridgerun
+          git pull origin master
           cd ../..
         fi 
     - name: Configuring

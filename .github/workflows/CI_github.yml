@@ -14,7 +14,7 @@ jobs:
       options: --privileged --platform linux/amd64  -v /dev/net/tun:/dev/net/tun -v /dev/kvm:/dev/kvm
     strategy:
       matrix:
-        branch: [dunfell]
+        branch: [zeus]
         arch: [x86-64]
     env:
       name: build-and-test

@@ -47,10 +47,10 @@ jobs:
     - name: Update repo meta-ridgerun
       run: |
         if [ ! -d ${BRANCH}/meta-ridgerun ]; then
-          git clone https://github.com/RidgeRun/meta-ridgerun.git -b yocto-${BRANCH} ${BRANCH}/meta-ridgerun
+          git clone https://github.com/RidgeRun/meta-ridgerun.git -b master ${BRANCH}/meta-ridgerun
         else
           cd ${BRANCH}/meta-ridgerun
-          git pull origin yocto-${BRANCH}
+          git pull origin master
           cd ../..
         fi 
     - name: Configuring
